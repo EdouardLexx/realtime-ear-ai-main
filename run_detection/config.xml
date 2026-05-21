@@ -19,7 +19,7 @@
     <detection>
         <max_ear>0.35</max_ear>
         <closed_threshold>0.15</closed_threshold>
-        <alert_duration>2.0</alert_duration>
+        <alert_duration>2.0</alert_duration>       <!-- secondes yeux fermés avant alerte -->
         <print_interval>0.5</print_interval>
     </detection>
 
@@ -36,11 +36,36 @@
 
     <!-- ── Capteur cardiaque MAX30102 ── -->
     <heart_rate>
-        <enabled>true</enabled>           <!-- true / false pour activer le capteur -->
-        <i2c_bus>1</i2c_bus>              <!-- I2C1 = GPIO2/GPIO3 -->
-        <int_pin>23</int_pin>             <!-- GPIO23 = pin INT du J5 -->
-        <alert_bpm_low>50</alert_bpm_low>   <!-- alerte si BPM en dessous -->
-        <alert_bpm_high>120</alert_bpm_high> <!-- alerte si BPM au dessus -->
+        <enabled>true</enabled>
+        <i2c_bus>1</i2c_bus>
+        <int_pin>23</int_pin>
+        <alert_bpm_low>50</alert_bpm_low>
+        <alert_bpm_high>120</alert_bpm_high>
     </heart_rate>
+
+    <!-- ── Vibreur ── -->
+    <vibrator>
+        <enabled>true</enabled>
+        <gpio_pin>12</gpio_pin>                <!-- GPIO12 = PWM0, "Commande moteur" -->
+        <pwm_frequency>100</pwm_frequency>     <!-- Hz -->
+        <duty_cycle>80</duty_cycle>            <!-- % intensité vibration (0-100) -->
+
+        <!-- Schéma de vibration quand yeux fermés -->
+        <pattern_on>0.3</pattern_on>           <!-- secondes ON par impulsion -->
+        <pattern_off>0.2</pattern_off>         <!-- secondes OFF entre impulsions -->
+        <pattern_reps>10</pattern_reps>        <!-- nombre d'impulsions par alerte -->
+
+        <!-- Seuil déclenchement : yeux fermés depuis X secondes -->
+        <!-- Doit être >= detection/alert_duration -->
+        <trigger_duration>2.0</trigger_duration>
+    </vibrator>
+
+    <!-- ── Pont de Wheatstone (ADS1115) ── -->
+    <wheatstone>
+        <enabled>true</enabled>
+        <i2c_address>0x48</i2c_address>        <!-- ADDR→GND = 0x48 -->
+        <gain>4</gain>                         <!-- 4 = ±1.024V, adapté à alim 3.3V -->
+        <sample_rate>0.1</sample_rate>         <!-- secondes entre lectures -->
+    </wheatstone>
 
 </config>
