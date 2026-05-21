@@ -17,21 +17,30 @@
 
     <!-- ── Détection yeux ── -->
     <detection>
-        <max_ear>0.35</max_ear>                  <!-- EAR considéré comme 100% ouvert -->
-        <closed_threshold>0.15</closed_threshold> <!-- EAR en dessous = yeux fermés -->
-        <alert_duration>2.0</alert_duration>      <!-- secondes avant déclenchement alerte -->
-        <print_interval>0.5</print_interval>      <!-- secondes entre logs terminal -->
+        <max_ear>0.35</max_ear>
+        <closed_threshold>0.15</closed_threshold>
+        <alert_duration>2.0</alert_duration>
+        <print_interval>0.5</print_interval>
     </detection>
 
     <!-- ── Envoi base de données ── -->
     <recording>
-        <send_interval>0.1</send_interval>        <!-- secondes entre chaque INSERT -->
+        <send_interval>1.0</send_interval>
     </recording>
 
     <!-- ── Alerte sonore ── -->
     <sound>
-        <enabled>true</enabled>                   <!-- true / false -->
-        <file>/home/edouard/Documents/realtime-ear-ai-main/run_detection/Sounds/Fahh Sound Effect.mp3</file>
+        <enabled>true</enabled>
+        <file>/home/edouard/Documents/Eyes_recognition/Sounds/BMW Warning Chime.mp3</file>
     </sound>
+
+    <!-- ── Capteur cardiaque MAX30102 ── -->
+    <heart_rate>
+        <enabled>true</enabled>           <!-- true / false pour activer le capteur -->
+        <i2c_bus>1</i2c_bus>              <!-- I2C1 = GPIO2/GPIO3 -->
+        <int_pin>23</int_pin>             <!-- GPIO23 = pin INT du J5 -->
+        <alert_bpm_low>50</alert_bpm_low>   <!-- alerte si BPM en dessous -->
+        <alert_bpm_high>120</alert_bpm_high> <!-- alerte si BPM au dessus -->
+    </heart_rate>
 
 </config>
