@@ -1,55 +1,28 @@
-import os
-import time
 import mysql.connector
 from mysql.connector import Error, errorcode
-
-# Charger un fichier .env s'il existe (optionnel)
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except Exception:
-    pass
+from config_loader import Config
 
 
 # ─────────────────────────────────────────────
 # Connexion
 # ─────────────────────────────────────────────
 
-def get_connection():
-    """Crée une connexion MariaDB/MySQL depuis les variables d'environnement.
-
-    Variables supportées (valeurs par défaut entre parenthèses) :
-      DB_HOST     (servrc.diskstation.me)
-      DB_PORT     (3306)
-      DB_USER     (Marie)
-      DB_PASSWORD ("")
-      DB_NAME     (Attention_conducteur)
-    """
-    host     = os.getenv("DB_HOST",     "servrc.diskstation.me")
-    port     = int(os.getenv("DB_PORT", "3306"))
-    user     = os.getenv("DB_USER",     "Marie")
-    password = os.getenv("DB_PASSWORD", "OCV5Ms!43T(9DJTF")
-    database = os.getenv("DB_NAME",     "Attention_conducteur")
-
+def get_connection(cfg: Config):
     try:
         conn = mysql.connector.connect(
-            host=host,
-            port=port,
-            user=user,
-            password=password,
-            database=database,
-            connection_timeout=5,
+            host               = cfg.db_host,
+            port               = cfg.db_port,
+            user               = cfg.db_user,
+            password           = cfg.db_password,
+            database           = cfg.db_name,
+            connection_timeout = 5,
         )
         return conn
     except Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            raise SystemExit(
-                "Erreur d'authentification. Vérifie DB_USER / DB_PASSWORD."
-            ) from err
+            raise SystemExit("Erreur d'authentification. Vérifie user/password dans config.xml.") from err
         if err.errno == errorcode.ER_BAD_DB_ERROR:
-            raise SystemExit(
-                f"La base '{database}' n'existe pas. Vérifie DB_NAME."
-            ) from err
+            raise SystemExit(f"La base '{cfg.db_name}' n'existe pas. Vérifie db_name dans config.xml.") from err
         raise SystemExit(f"Connexion échouée : {err}") from err
 
 
@@ -57,28 +30,25 @@ def get_connection():
 # Trajets
 # ─────────────────────────────────────────────
 
-def start_trajet(id_conducteur: int) -> int:
-    """Crée un nouveau trajet en base et retourne son id."""
-    conn   = get_connection()
+def start_trajet(cfg: Config) -> int:
+    conn   = get_connection(cfg)
     cursor = conn.cursor()
     try:
         cursor.execute(
             "INSERT INTO trajets (id_conducteur, debut_log) VALUES (%s, NOW())",
-            (id_conducteur,)
+            (cfg.id_conducteur,)
         )
         conn.commit()
         trajet_id = cursor.lastrowid
     finally:
         cursor.close()
         conn.close()
-
-    print(f"🚗 Trajet démarré  (id_trajet = {trajet_id})")
+    print(f"🚗 Trajet démarré (id_trajet = {trajet_id})")
     return trajet_id
 
 
-def end_trajet(id_trajet: int) -> None:
-    """Marque la fin du trajet dans la base."""
-    conn   = get_connection()
+def end_trajet(cfg: Config, id_trajet: int) -> None:
+    conn   = get_connection(cfg)
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -89,8 +59,7 @@ def end_trajet(id_trajet: int) -> None:
     finally:
         cursor.close()
         conn.close()
-
-    print(f" Trajet {id_trajet} terminé !")
+    print(f"🏁 Trajet {id_trajet} terminé !")
 
 
 # ─────────────────────────────────────────────
@@ -98,15 +67,15 @@ def end_trajet(id_trajet: int) -> None:
 # ─────────────────────────────────────────────
 
 def insert_mesure(
+    cfg:              Config,
     id_trajet:        int,
     temps_ms:         int,
-    ouverture_oeil:   float,   # pourcentage moyen des deux yeux (0–100)
-    alerte_visuelle:  int,     # 1 si yeux fermés ≥ ALERT_DURATION, sinon 0
-    rythme_cardiaque: int = 0, # 0 si non dispo
-    alerte_sonore:    int = 0, # 0 si non dispo
+    ouverture_oeil:   float,
+    alerte_visuelle:  int,
+    rythme_cardiaque: int = 0,
+    alerte_sonore:    int = 0,
 ) -> None:
-    """Insère une mesure en base."""
-    conn   = get_connection()
+    conn   = get_connection(cfg)
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -117,7 +86,7 @@ def insert_mesure(
             VALUES (%s, %s, %s, %s, %s, %s)
             """,
             (
-                id_trajet,  
+                id_trajet,
                 int(temps_ms),
                 float(ouverture_oeil),
                 int(rythme_cardiaque),

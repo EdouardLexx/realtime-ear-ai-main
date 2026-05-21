@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+
+    <!-- ── Conducteur ── -->
+    <conducteur>
+        <id>1</id>
+    </conducteur>
+
+    <!-- ── Base de données ── -->
+    <database>
+        <host>servrc.diskstation.me</host>
+        <port>3306</port>
+        <user>Marie</user>
+        <password>OCV5Ms!43T(9DJTF</password>
+        <name>Attention_conducteur</name>
+    </database>
+
+    <!-- ── Détection yeux ── -->
+    <detection>
+        <max_ear>0.35</max_ear>                  <!-- EAR considéré comme 100% ouvert -->
+        <closed_threshold>0.15</closed_threshold> <!-- EAR en dessous = yeux fermés -->
+        <alert_duration>2.0</alert_duration>      <!-- secondes avant déclenchement alerte -->
+        <print_interval>0.5</print_interval>      <!-- secondes entre logs terminal -->
+    </detection>
+
+    <!-- ── Envoi base de données ── -->
+    <recording>
+        <send_interval>0.1</send_interval>        <!-- secondes entre chaque INSERT -->
+    </recording>
+
+    <!-- ── Alerte sonore ── -->
+    <sound>
+        <enabled>true</enabled>                   <!-- true / false -->
+        <file>/home/edouard/Documents/realtime-ear-ai-main/run_detection/Sounds/Fahh Sound Effect.mp3</file>
+    </sound>
+
+</config>

@@ -1,50 +1,48 @@
 import time
-from db import start_trajet, insert_mesure, end_trajet
-from CamLive import run_detection
-
-# ─────────────────────────────────────────────
-# Configuration
-# ─────────────────────────────────────────────
-
-ID_CONDUCTEUR     = 1      # à adapter selon ton conducteur
-DB_SEND_INTERVAL  = 1.0    # secondes entre chaque envoi en base (évite le flood)
-
-# ─────────────────────────────────────────────
-# Main
-# ─────────────────────────────────────────────
+import threading
+import queue
+from config_loader import load_config
+from db            import start_trajet, insert_mesure, end_trajet
+from CamLive       import run_detection
 
 def main():
-    trajet_id  = start_trajet(ID_CONDUCTEUR)
+    cfg = load_config()
+    print(f"⚙️  Config chargée — conducteur={cfg.id_conducteur} | son={'ON' if cfg.sound_enabled else 'OFF'}")
+    trajet_id  = start_trajet(cfg)
     start_time = time.time()
+    db_queue = queue.Queue()
 
-    # État partagé entre le callback et la boucle
-    last_db_send = [0.0]   # liste pour pouvoir la modifier dans le closure
+    def db_worker():
+        while True:
+            item = db_queue.get()
+            if item is None:
+                break
+            t_ms, ouv, alerte = item
+            try:
+                insert_mesure(cfg=cfg, id_trajet=trajet_id, temps_ms=t_ms, ouverture_oeil=ouv, alerte_visuelle=alerte)
+                print(f"[DB] t={t_ms}ms | œil={ouv:.1f}% | {'ALERTE' if alerte else 'OK'}")
+            except Exception as e:
+                print(f"[DB]  Erreur : {e}")
+            finally:
+                db_queue.task_done()
 
-    def on_mesure(temps_ms: int, ouverture_oeil: float, alerte_visuelle: int):
-        """Reçoit les données de cam.py et les envoie en base à intervalle régulier."""
+    worker = threading.Thread(target=db_worker, daemon=True)
+    worker.start()
+    last_send = [0.0]
+
+    def on_mesure(temps_ms, ouverture_oeil, alerte_visuelle):
         now = time.time()
-        if now - last_db_send[0] < DB_SEND_INTERVAL:
-            return  # pas encore le moment d'envoyer
-
-        last_db_send[0] = now
-
-        insert_mesure(
-            id_trajet       = trajet_id,
-            temps_ms        = temps_ms,
-            ouverture_oeil  = ouverture_oeil,
-            alerte_visuelle = alerte_visuelle,
-            # rythme_cardiaque et alerte_sonore laissés à 0
-            # → branche les capteurs ici quand tu les auras
-        )
-
-        status = "🔴 ALERTE" if alerte_visuelle else "🟢 OK"
-        print(f"[DB] t={temps_ms}ms | œil={ouverture_oeil:.1f}% | {status}")
+        if now - last_send[0] < cfg.send_interval:
+            return
+        last_send[0] = now
+        db_queue.put((temps_ms, ouverture_oeil, alerte_visuelle))
 
     try:
-        run_detection(on_mesure=on_mesure, start_time_ref=start_time)
+        run_detection(cfg=cfg, on_mesure=on_mesure, start_time_ref=start_time)
     finally:
-        end_trajet(trajet_id)
-
+        db_queue.put(None)
+        worker.join()
+        end_trajet(cfg, trajet_id)
 
 if __name__ == "__main__":
     main()
